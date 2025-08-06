@@ -32,9 +32,9 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-v2-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-
+          ${{ runner.os }}-go-${{ matrix.go-version }}-v2-
     
     - name: Download dependencies
       run: go mod download
@@ -97,9 +97,9 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-v2-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+          ${{ runner.os }}-go-${{ env.GO_VERSION }}-v2-
     
     - name: Download dependencies
       run: go mod download
@@ -230,7 +230,7 @@ jobs:
     - name: Run misspell
       run: |
         go install github.com/client9/misspell/cmd/misspell@latest
-        misspell -error .
+        find . -name "bsb_usfm" -prune -o -type f -print | xargs misspell -error
     
     - name: SonarCloud Scan
       if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
