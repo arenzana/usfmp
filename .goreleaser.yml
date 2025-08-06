@@ -1,0 +1,75 @@
+# GoReleaser configuration for USFM Parser
+version: 2
+
+# Environment variables for build
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+# Build configuration
+builds:
+  - id: usfmp
+    main: ./cmd/usfmp
+    binary: usfmp
+    
+    # Build for multiple platforms
+    goos:
+      - linux
+      - darwin
+      - windows
+    
+    goarch:
+      - amd64
+      - arm64
+    
+    # Build flags and ldflags
+    flags:
+      - -trimpath
+    
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+      - -X main.builtBy=goreleaser
+
+# Archive configuration
+archives:
+  - id: usfmp-archive
+    name_template: >-
+      {{- .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386  
+      {{- else }}{{ .Arch }}{{ end }}
+    
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+      - bsb_usfm/**/*
+
+# Checksums
+checksum:
+  name_template: 'checksums.txt'
+
+# Snapshot configuration for development builds
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+# Changelog configuration
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^style:'
+
+# GitHub release configuration
+release:
+  draft: false
+  prerelease: auto

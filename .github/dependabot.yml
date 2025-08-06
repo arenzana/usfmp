@@ -1,0 +1,103 @@
+# Dependabot configuration for automated dependency updates
+version: 2
+
+updates:
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    
+    # Group dependencies by type
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+    
+    # Pull request configuration
+    open-pull-requests-limit: 5
+    
+    # Commit message configuration
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    
+    # Reviewers and assignees
+    reviewers:
+      - "arenzana"
+    assignees:
+      - "arenzana"
+    
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "go"
+    
+    # Allow version updates
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    
+    # Ignore specific updates
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "github.com/spf13/cobra"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    
+    # Pull request configuration
+    open-pull-requests-limit: 3
+    
+    # Commit message configuration
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    
+    # Reviewers and assignees
+    reviewers:
+      - "arenzana"
+    assignees:
+      - "arenzana"
+    
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    
+    # Pull request configuration
+    open-pull-requests-limit: 2
+    
+    # Commit message configuration
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    
+    # Reviewers and assignees
+    reviewers:
+      - "arenzana"
+    assignees:
+      - "arenzana"
+    
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "docker"
