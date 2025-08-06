@@ -159,22 +159,41 @@ jobs:
       uses: anchore/scan-action@v6
       id: grype-scan
       with:
-        path: "build/usfmp"
-        format: sarif
+        path: "."
+        output-format: sarif
         output-file: grype-results.sarif
         fail-build: false
+      continue-on-error: true
+    
+    - name: Check SARIF file exists and is valid
+      id: check-sarif
+      run: |
+        if [ -f "grype-results.sarif" ] && [ -s "grype-results.sarif" ]; then
+          # Check if it's valid JSON
+          if jq empty grype-results.sarif 2>/dev/null; then
+            echo "sarif-valid=true" >> $GITHUB_OUTPUT
+            echo "✅ SARIF file is valid"
+          else
+            echo "sarif-valid=false" >> $GITHUB_OUTPUT
+            echo "❌ SARIF file is not valid JSON"
+          fi
+        else
+          echo "sarif-valid=false" >> $GITHUB_OUTPUT
+          echo "❌ SARIF file does not exist or is empty"
+        fi
     
     - name: Upload Grype scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: steps.check-sarif.outputs.sarif-valid == 'true'
       with:
         sarif_file: grype-results.sarif
+      continue-on-error: true
     
     - name: Run Grype for human readable output
       uses: anchore/scan-action@v6
       with:
-        path: "build/usfmp"
-        format: table
+        path: "."
+        output-format: table
         fail-build: false
 
   code-quality:

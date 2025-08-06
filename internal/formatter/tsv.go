@@ -12,7 +12,8 @@ import (
 // verse text, footnotes, and references.
 //
 // Column format:
-//   Book	Chapter	Verse	Section_Title	Section_Level	Verse_Text	Footnotes	References
+//
+//	Book	Chapter	Verse	Section_Title	Section_Level	Verse_Text	Footnotes	References
 //
 // Footnotes are formatted as "caller:reference=text" and separated by semicolons.
 // Text is cleaned of tabs and newlines to ensure proper TSV format.

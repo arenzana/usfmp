@@ -228,4 +228,3 @@ func logInfo(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, "[INFO] "+format+"\n", args...)
 	}
 }
-
