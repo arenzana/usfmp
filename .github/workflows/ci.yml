@@ -235,7 +235,7 @@ jobs:
         find . -name "bsb_usfm" -prune -o -type f -print | xargs misspell -error
     
     - name: SonarCloud Scan
-      if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && ${{ secrets.SONAR_TOKEN != '' }}
+      if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.SONAR_TOKEN != '' }}
       uses: SonarSource/sonarqube-scan-action@v5.0.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
