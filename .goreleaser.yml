@@ -17,10 +17,26 @@ builds:
       - linux
       - darwin
       - windows
+      - freebsd
     
     goarch:
       - amd64
       - arm64
+      - arm
+    
+    goarm:
+      - "6"
+      - "7"
+    
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
     
     # Build flags and ldflags
     flags:
@@ -61,6 +77,7 @@ snapshot:
 # Changelog configuration
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
       - '^docs:'
@@ -68,8 +85,55 @@ changelog:
       - '^ci:'
       - '^chore:'
       - '^style:'
+  groups:
+    - title: 'Features'
+      regexp: '^.*?(feat|feature)(\(.+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: 'Performance improvements'
+      regexp: '^.*?perf(\(.+\))??!?:.+$'
+      order: 2
+    - title: 'Dependency updates'
+      regexp: '^.*?(deps|dep)(\(.+\))??!?:.+$'
+      order: 3
+    - title: 'Other changes'
+      order: 999
 
 # GitHub release configuration
 release:
   draft: false
   prerelease: auto
+  make_latest: true
+  mode: replace
+  header: |
+    ## USFM Parser {{.Tag}}
+    
+    A command-line tool and Go library for parsing USFM (Unified Standard Format Marker) biblical texts.
+    
+    ### Installation
+    
+    Download the appropriate binary for your system from the assets below, or install using Go:
+    
+    ```bash
+    go install github.com/arenzana/usfmp/cmd/usfmp@{{.Tag}}
+    ```
+    
+  footer: |
+    
+    ### Checksums
+    
+    All binaries are signed and checksums are provided for verification.
+    
+    **Full Changelog**: https://github.com/arenzana/usfmp/compare/{{.PreviousTag}}...{{.Tag}}
+    
+  name_template: "{{.ProjectName}} {{.Version}}"
+  
+  # Extra files to include in release
+  extra_files:
+    - glob: ./bsb_usfm/*.SFM
+    - glob: ./bsb_usfm/*.xml
+    - glob: ./bsb_usfm/*.sty
+    - glob: ./bsb_usfm/*.vrs
+    - glob: ./bsb_usfm/*.ldml

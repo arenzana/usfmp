@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated GitHub Actions dependencies:
+  - golangci/golangci-lint-action from v6 to v8
+  - anchore/scan-action from v4 to v6  
+  - actions/download-artifact from v4 to v5
+- Updated Go dependencies:
+  - github.com/spf13/pflag from v1.0.6 to v1.0.7
+
 ### Planned
 - PDF output formatter implementation
 - Enhanced error reporting with line-by-line context
@@ -15,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel processing for directory parsing
 - Plugin system for custom formatters
 
-## [0.1.0] - 2024-01-XX
+## [0.0.2] - 2024-01-XX
 
 ### Added
 - Initial release of USFM Parser
@@ -100,7 +108,7 @@ usfmp/
 
 ## Release History
 
-### Version 0.1.0 - Initial Release
+### Version 0.0.2 - Initial Release
 - **Release Date**: 2024-01-XX
 - **Go Version**: 1.24+
 - **Breaking Changes**: None (initial release)
