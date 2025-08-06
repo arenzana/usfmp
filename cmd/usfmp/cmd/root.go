@@ -128,7 +128,9 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 
 		doc, err := parser.Parse(f, file)
-		f.Close()
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("error closing file %s: %w", file, closeErr)
+		}
 
 		if err != nil {
 			return fmt.Errorf("error parsing file %s: %w", file, err)
@@ -227,9 +229,3 @@ func logInfo(format string, args ...interface{}) {
 	}
 }
 
-// logVerbose prints verbose messages only in verbose mode
-func logVerbose(format string, args ...interface{}) {
-	if verbose && !quiet {
-		fmt.Fprintf(os.Stderr, "[DEBUG] "+format+"\n", args...)
-	}
-}

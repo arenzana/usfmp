@@ -32,7 +32,7 @@ func FormatJSON(documents []*usfm.Document) (string, error) {
 	if len(documents) == 0 {
 		return "[]", nil
 	}
-	
+
 	// If single document, return it directly (not wrapped in array)
 	if len(documents) == 1 {
 		data, err := json.MarshalIndent(documents[0], "", "  ")
@@ -41,12 +41,12 @@ func FormatJSON(documents []*usfm.Document) (string, error) {
 		}
 		return string(data), nil
 	}
-	
+
 	// Multiple documents - return as array
 	data, err := json.MarshalIndent(documents, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal documents to JSON: %w", err)
 	}
-	
+
 	return string(data), nil
 }

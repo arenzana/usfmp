@@ -15,12 +15,12 @@ import (
 // The parser behavior can be configured through ParseOptions.
 type Parser struct {
 	options ParseOptions
-	
+
 	// Regular expressions for parsing different USFM elements
-	markerRegex     *regexp.Regexp // Matches any USFM marker (\tag content)
-	chapterRegex    *regexp.Regexp // Matches chapter markers (\c number)
-	verseRegex      *regexp.Regexp // Matches verse markers (\v number text)
-	footnoteRegex   *regexp.Regexp // Matches footnote content (\f...\f*)
+	markerRegex   *regexp.Regexp // Matches any USFM marker (\tag content)
+	chapterRegex  *regexp.Regexp // Matches chapter markers (\c number)
+	verseRegex    *regexp.Regexp // Matches verse markers (\v number text)
+	footnoteRegex *regexp.Regexp // Matches footnote content (\f...\f*)
 }
 
 // NewParser creates a new USFM parser with the specified options.
@@ -36,11 +36,11 @@ type Parser struct {
 //	parser := usfm.NewParser(options)
 func NewParser(options ParseOptions) *Parser {
 	return &Parser{
-		options:         options,
-		markerRegex:     regexp.MustCompile(`^\\([a-z0-9]+)\*?\s*(.*)`),
-		chapterRegex:    regexp.MustCompile(`^\\c\s+(\d+)`),
-		verseRegex:      regexp.MustCompile(`^\\v\s+(\d+)\s*(.*)`),
-		footnoteRegex:   regexp.MustCompile(`\\f\s*([^\\]*?)\\fr\s*([^\\]*?)\\ft\s*([^\\]*?)\\f\*`),
+		options:       options,
+		markerRegex:   regexp.MustCompile(`^\\([a-z0-9]+)\*?\s*(.*)`),
+		chapterRegex:  regexp.MustCompile(`^\\c\s+(\d+)`),
+		verseRegex:    regexp.MustCompile(`^\\v\s+(\d+)\s*(.*)`),
+		footnoteRegex: regexp.MustCompile(`\\f\s*([^\\]*?)\\fr\s*([^\\]*?)\\ft\s*([^\\]*?)\\f\*`),
 	}
 }
 
@@ -64,7 +64,7 @@ func NewParser(options ParseOptions) *Parser {
 //		return err
 //	}
 //	defer file.Close()
-//	
+//
 //	parser := usfm.NewParser(usfm.DefaultParseOptions())
 //	doc, err := parser.Parse(file, "genesis.sfm")
 //	if err != nil {
@@ -76,22 +76,22 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 		SourceFile: sourceFile,
 		Chapters:   make([]Chapter, 0),
 	}
-	
+
 	scanner := bufio.NewScanner(reader)
 	lineNumber := 0
-	
+
 	var currentChapter *Chapter
 	var currentSection *Section
-	
+
 	for scanner.Scan() {
 		lineNumber++
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Skip empty lines
 		if line == "" {
 			continue
 		}
-		
+
 		// Parse marker
 		marker, err := p.parseMarker(line, lineNumber)
 		if err != nil {
@@ -100,7 +100,7 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 			}
 			continue // Skip invalid markers in non-strict mode
 		}
-		
+
 		// Handle different marker types
 		switch marker.Tag {
 		case "id":
@@ -120,17 +120,17 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 			if err != nil {
 				return nil, fmt.Errorf("line %d: %w", lineNumber, err)
 			}
-			
+
 			// Save current section to current chapter before switching chapters
 			if currentSection != nil && currentChapter != nil {
 				currentChapter.Sections = append(currentChapter.Sections, *currentSection)
 			}
-			
+
 			// Save previous chapter if it exists
 			if currentChapter != nil {
 				doc.Chapters = append(doc.Chapters, *currentChapter)
 			}
-			
+
 			// Start new chapter
 			currentChapter = &Chapter{
 				Number:   chapterNum,
@@ -144,12 +144,12 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 				Title:  marker.Content,
 				Verses: make([]Verse, 0),
 			}
-			
+
 			// Add previous section to chapter if exists
 			if currentSection != nil && currentChapter != nil {
 				currentChapter.Sections = append(currentChapter.Sections, *currentSection)
 			}
-			
+
 			currentSection = &section
 		case "r":
 			// Reference/cross-reference - attach to current section
@@ -161,7 +161,7 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 			if err != nil {
 				return nil, fmt.Errorf("line %d: %w", lineNumber, err)
 			}
-			
+
 			// Ensure we have a section to add the verse to
 			if currentSection == nil {
 				currentSection = &Section{
@@ -170,7 +170,7 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 					Verses: make([]Verse, 0),
 				}
 			}
-			
+
 			currentSection.Verses = append(currentSection.Verses, *verse)
 		default:
 			// Handle unknown markers in strict mode
@@ -180,7 +180,7 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 			// In non-strict mode, ignore unknown markers
 		}
 	}
-	
+
 	// Add final section and chapter
 	if currentSection != nil && currentChapter != nil {
 		currentChapter.Sections = append(currentChapter.Sections, *currentSection)
@@ -188,11 +188,11 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 	if currentChapter != nil {
 		doc.Chapters = append(doc.Chapters, *currentChapter)
 	}
-	
+
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("error reading input: %w", err)
 	}
-	
+
 	return doc, nil
 }
 
@@ -201,12 +201,12 @@ func (p *Parser) parseMarker(line string, lineNumber int) (*Marker, error) {
 	if !strings.HasPrefix(line, "\\") {
 		return nil, fmt.Errorf("line does not start with marker")
 	}
-	
+
 	matches := p.markerRegex.FindStringSubmatch(line)
 	if len(matches) < 3 {
 		return nil, fmt.Errorf("invalid marker format")
 	}
-	
+
 	return &Marker{
 		Tag:     matches[1],
 		Content: strings.TrimSpace(matches[2]),
@@ -229,32 +229,32 @@ func (p *Parser) parseVerse(content string, includeFootnotes bool) (*Verse, erro
 	if len(parts) < 1 {
 		return nil, fmt.Errorf("invalid verse format")
 	}
-	
+
 	verseNum, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return nil, fmt.Errorf("invalid verse number: %w", err)
 	}
-	
+
 	verseText := ""
 	if len(parts) > 1 {
 		verseText = parts[1]
 	}
-	
+
 	verse := &Verse{
 		Number:    verseNum,
 		Text:      verseText,
 		Footnotes: make([]Footnote, 0),
 	}
-	
+
 	// Parse footnotes if enabled
 	if includeFootnotes {
 		footnotes := p.extractFootnotes(verseText)
 		verse.Footnotes = footnotes
-		
+
 		// Remove footnote markers from main text
 		verse.Text = p.removeFootnoteMarkers(verseText)
 	}
-	
+
 	return verse, nil
 }
 
@@ -275,7 +275,7 @@ func (p *Parser) getSectionLevel(tag string) int {
 // extractFootnotes finds and extracts footnotes from verse text
 func (p *Parser) extractFootnotes(text string) []Footnote {
 	footnotes := make([]Footnote, 0)
-	
+
 	matches := p.footnoteRegex.FindAllStringSubmatch(text, -1)
 	for _, match := range matches {
 		if len(match) >= 4 {
@@ -287,7 +287,7 @@ func (p *Parser) extractFootnotes(text string) []Footnote {
 			footnotes = append(footnotes, footnote)
 		}
 	}
-	
+
 	return footnotes
 }
 
@@ -295,11 +295,11 @@ func (p *Parser) extractFootnotes(text string) []Footnote {
 func (p *Parser) removeFootnoteMarkers(text string) string {
 	// Remove footnote markers but keep the main text clean
 	cleaned := p.footnoteRegex.ReplaceAllString(text, "")
-	
+
 	// Clean up multiple spaces that may result from footnote removal
 	for strings.Contains(cleaned, "  ") {
 		cleaned = strings.ReplaceAll(cleaned, "  ", " ")
 	}
-	
+
 	return strings.TrimSpace(cleaned)
 }

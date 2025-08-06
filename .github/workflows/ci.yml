@@ -72,7 +72,7 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
     
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v8
       with:
         version: latest
         args: --timeout=5m
@@ -147,7 +147,7 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
     
     - name: Download build artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: usfmp-binary-${{ github.sha }}
         path: build/
@@ -156,7 +156,7 @@ jobs:
       run: chmod +x build/usfmp
     
     - name: Run Grype vulnerability scanner
-      uses: anchore/scan-action@v4
+      uses: anchore/scan-action@v6
       id: grype-scan
       with:
         path: "build/usfmp"
@@ -171,7 +171,7 @@ jobs:
         sarif_file: grype-results.sarif
     
     - name: Run Grype for human readable output
-      uses: anchore/scan-action@v4
+      uses: anchore/scan-action@v6
       with:
         path: "build/usfmp"
         format: table

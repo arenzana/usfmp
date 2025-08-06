@@ -18,7 +18,7 @@ func main() {
 	}
 
 	filename := os.Args[1]
-	
+
 	// Example 1: Basic parsing
 	fmt.Println("=== Basic USFM Parsing Example ===")
 	doc, err := parseUSFMFile(filename)
@@ -69,7 +69,11 @@ func parseUSFMFile(filename string) (*usfm.Document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close file: %v\n", err)
+		}
+	}()
 
 	// Create parser with default options
 	parser := usfm.NewParser(usfm.DefaultParseOptions())
@@ -92,16 +96,16 @@ func navigateStructure(doc *usfm.Document) {
 		}
 
 		fmt.Printf("Chapter %d (%d sections):\n", chapter.Number, len(chapter.Sections))
-		
+
 		for j, section := range chapter.Sections {
 			if j >= 2 { // Show only first 2 sections per chapter
 				fmt.Printf("    ... and %d more sections\n", len(chapter.Sections)-2)
 				break
 			}
 
-			fmt.Printf("  Section %d: \"%s\" (%d verses)\n", 
+			fmt.Printf("  Section %d: \"%s\" (%d verses)\n",
 				section.Level, limitText(section.Title, 50), len(section.Verses))
-			
+
 			if section.Reference != "" {
 				fmt.Printf("    Reference: %s\n", section.Reference)
 			}
@@ -127,30 +131,30 @@ func extractChapterVerses(doc *usfm.Document, chapterNum int) []usfm.Verse {
 // findVersesWithFootnotes demonstrates finding verses that have footnotes
 func findVersesWithFootnotes(doc *usfm.Document, limit int) {
 	found := 0
-	
+
 	for _, chapter := range doc.Chapters {
 		if found >= limit {
 			break
 		}
-		
+
 		for _, section := range chapter.Sections {
 			if found >= limit {
 				break
 			}
-			
+
 			for _, verse := range section.Verses {
 				if len(verse.Footnotes) > 0 {
 					fmt.Printf("Chapter %d, Verse %d (%d footnotes):\n",
 						chapter.Number, verse.Number, len(verse.Footnotes))
 					fmt.Printf("  Text: %s\n", limitText(verse.Text, 100))
-					
+
 					for _, footnote := range verse.Footnotes {
 						fmt.Printf("  Footnote [%s:%s]: %s\n",
-							footnote.Caller, footnote.Reference, 
+							footnote.Caller, footnote.Reference,
 							limitText(footnote.Text, 80))
 					}
 					fmt.Println()
-					
+
 					found++
 					if found >= limit {
 						break
@@ -159,9 +163,9 @@ func findVersesWithFootnotes(doc *usfm.Document, limit int) {
 			}
 		}
 	}
-	
+
 	if found == 0 {
-		fmt.Println("No verses with footnotes found in this document.\n")
+		fmt.Println("No verses with footnotes found in this document.")
 	}
 }
 
@@ -216,7 +220,7 @@ func limitText(text string, maxLen int) string {
 func splitLines(text string) []string {
 	lines := []string{}
 	current := ""
-	
+
 	for _, char := range text {
 		if char == '\n' {
 			lines = append(lines, current)
@@ -225,11 +229,11 @@ func splitLines(text string) []string {
 			current += string(char)
 		}
 	}
-	
+
 	if current != "" {
 		lines = append(lines, current)
 	}
-	
+
 	return lines
 }
 
@@ -238,7 +242,9 @@ func init() {
 	// Change to project root if run from examples directory
 	if filepath.Base(os.Args[0]) == "basic_usage" || filepath.Base(os.Args[0]) == "basic_usage.exe" {
 		if _, err := os.Stat("../bsb_usfm"); err == nil {
-			os.Chdir("..")
+			if err := os.Chdir(".."); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to change directory: %v\n", err)
+			}
 		}
 	}
 }

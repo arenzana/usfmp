@@ -2,14 +2,6 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
-      - master
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.github/**'
-      - '!.github/workflows/release.yml'
     tags:
       - 'v*'
   
@@ -22,23 +14,18 @@ on:
         type: string
 
 env:
-  REGISTRY: ghcr.io
   GO_VERSION: '1.24'
 
 permissions:
   contents: write
   packages: write
   id-token: write
-  security-events: write
 
 jobs:
-  # Pre-release checks
-  pre-release:
-    name: Pre-Release Checks
+  # Pre-release tests
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    outputs:
-      should-release: ${{ steps.check.outputs.should-release }}
-      version: ${{ steps.version.outputs.version }}
     
     steps:
     - name: Checkout code
@@ -50,86 +37,6 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
-    
-    - name: Run tests
-      run: make test
-    
-    - name: Check if should release
-      id: check
-      run: |
-        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/"* ]]; then
-          # Check if there are new commits since last release
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          COMMITS_SINCE_TAG=$(git rev-list ${LAST_TAG}..HEAD --count)
-          
-          if [ "$COMMITS_SINCE_TAG" -gt "0" ]; then
-            echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "Found $COMMITS_SINCE_TAG commits since $LAST_TAG"
-          else
-            echo "should-release=false" >> $GITHUB_OUTPUT
-            echo "No new commits since last release"
-          fi
-        elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/tags/v"* ]]; then
-          echo "should-release=true" >> $GITHUB_OUTPUT
-          echo "Tag push detected"
-        elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "should-release=true" >> $GITHUB_OUTPUT
-          echo "Manual release triggered"
-        else
-          echo "should-release=false" >> $GITHUB_OUTPUT
-        fi
-    
-    - name: Determine version
-      id: version
-      run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.ref }}" == "refs/tags/v"* ]]; then
-          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        else
-          # Auto-increment patch version for main/master branch pushes
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          # Simple version increment (patch level)
-          NEW_VERSION=$(echo $LAST_TAG | awk -F. -v OFS=. '{$NF++;print}' | sed 's/^v/v/')
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-        fi
-
-  # Main release job
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: pre-release
-    if: needs.pre-release.outputs.should-release == 'true'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-    
-    - name: Install cosign
-      uses: sigstore/cosign-installer@v3
-      with:
-        cosign-release: 'v2.1.1'
-    
-    - name: Install Syft (for SBOM generation)
-      uses: anchore/sbom-action/download-syft@v0
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
     
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -139,21 +46,91 @@ jobs:
           ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
     
-    - name: Create/Push tag if needed
-      if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
+    - name: Download dependencies
+      run: go mod download
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Run lint
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        args: --timeout=5m
+
+  # Create tag for manual releases
+  create-tag:
+    name: Create Tag
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      tag: ${{ steps.create.outputs.tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create and push tag
+      id: create
       run: |
-        VERSION="${{ needs.pre-release.outputs.version }}"
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+          echo "Invalid version format: $VERSION"
+          exit 1
+        fi
+        
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
-        if ! git tag -l | grep -q "^${VERSION}$"; then
-          git tag -a "${VERSION}" -m "Release ${VERSION}"
-          git push origin "${VERSION}"
+        if git tag -l | grep -q "^${VERSION}$"; then
+          echo "Tag $VERSION already exists"
+          exit 1
         fi
+        
+        git tag -a "${VERSION}" -m "Release ${VERSION}"
+        git push origin "${VERSION}"
+        echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+  # Main release job using GoReleaser
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && needs.create-tag.result == 'success')
     
-    - name: Wait for tag
-      if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
-      run: sleep 10
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+    
+    - name: Download dependencies
+      run: go mod download
+    
+    - name: Install cosign
+      uses: sigstore/cosign-installer@v3
+      with:
+        cosign-release: 'v2.1.1'
+    
+    - name: Install Syft (for SBOM generation)
+      uses: anchore/sbom-action/download-syft@v0
     
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v6
@@ -163,14 +140,13 @@ jobs:
         args: release --clean --timeout 60m
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
         COSIGN_EXPERIMENTAL: 1
 
   # Post-release security scan
-  post-release-security:
-    name: Post-Release Security Scan
+  security-scan:
+    name: Security Scan
     runs-on: ubuntu-latest
-    needs: [release]
+    needs: release
     if: always() && needs.release.result == 'success'
     
     steps:
@@ -202,14 +178,14 @@ jobs:
           core.setOutput('asset-name', asset.name);
           return asset.browser_download_url;
     
-    - name: Download release binary
+    - name: Download and extract release binary
       run: |
         curl -L "${{ steps.latest-release.outputs.download-url }}" -o release.tar.gz
         tar -xzf release.tar.gz
         chmod +x usfmp
     
     - name: Security scan with Grype
-      uses: anchore/scan-action@v4
+      uses: anchore/scan-action@v6
       with:
         path: "./usfmp"
         format: sarif
@@ -221,49 +197,3 @@ jobs:
       if: always()
       with:
         sarif_file: grype-results.sarif
-
-  # Update documentation
-  update-docs:
-    name: Update Documentation
-    runs-on: ubuntu-latest
-    needs: [release]
-    if: always() && needs.release.result == 'success'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
-    
-    - name: Update CHANGELOG.md
-      run: |
-        VERSION="${{ needs.pre-release.outputs.version }}"
-        DATE=$(date '+%Y-%m-%d')
-        
-        # Update unreleased section to released version
-        sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [${VERSION#v}] - ${DATE}/" CHANGELOG.md
-        
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        if git diff --quiet CHANGELOG.md; then
-          echo "No changes to CHANGELOG.md"
-        else
-          git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG.md for ${VERSION}"
-          git push origin main || git push origin master
-        fi
-    
-    - name: Update README badges
-      run: |
-        # Update Go Report Card badge to latest
-        git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
-        
-        if git diff --quiet README.md; then
-          echo "No changes to README.md"
-        else
-          git add README.md
-          git commit -m "docs: update README badges"
-          git push origin main || git push origin master
-        fi
