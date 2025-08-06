@@ -6,7 +6,7 @@ CMD_PATH=./cmd/usfmp
 PKG_PATH=./pkg/...
 INTERNAL_PATH=./internal/...
 BUILD_DIR=build
-VERSION?=0.0.1
+VERSION?=0.0.2
 
 # Go parameters
 GOCMD=go
@@ -86,16 +86,27 @@ install: build
 build-all: clean
 	@echo "Building for multiple platforms..."
 	@mkdir -p $(BUILD_DIR)
-	# Linux amd64
+	# Linux
 	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 $(CMD_PATH)
-	# Linux arm64
 	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 $(CMD_PATH)
-	# Darwin amd64
+	GOOS=linux GOARCH=386 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-386 $(CMD_PATH)
+	GOOS=linux GOARCH=arm $(GOARM=7) $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-armv7 $(CMD_PATH)
+	# Darwin (macOS)
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 $(CMD_PATH)
-	# Darwin arm64
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 $(CMD_PATH)
-	# Windows amd64
+	# Windows
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(CMD_PATH)
+	GOOS=windows GOARCH=386 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe $(CMD_PATH)
+	GOOS=windows GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-arm64.exe $(CMD_PATH)
+	# FreeBSD
+	GOOS=freebsd GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-freebsd-amd64 $(CMD_PATH)
+	GOOS=freebsd GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-freebsd-arm64 $(CMD_PATH)
+	# OpenBSD
+	GOOS=openbsd GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-openbsd-amd64 $(CMD_PATH)
+	GOOS=openbsd GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-openbsd-arm64 $(CMD_PATH)
+	# NetBSD
+	GOOS=netbsd GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-netbsd-amd64 $(CMD_PATH)
+	GOOS=netbsd GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-netbsd-arm64 $(CMD_PATH)
 	@echo "Multi-platform build complete"
 
 # Run the binary with sample data

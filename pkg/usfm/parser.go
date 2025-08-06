@@ -103,75 +103,18 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 
 		// Handle different marker types
 		switch marker.Tag {
-		case "id":
-			doc.ID = marker.Content
-		case "h":
-			doc.Header = marker.Content
-		case "toc1":
-			doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 1, Text: marker.Content})
-		case "toc2":
-			doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 2, Text: marker.Content})
-		case "toc3":
-			doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 3, Text: marker.Content})
-		case "mt1":
-			doc.MainTitle = marker.Content
+		case "id", "h", "toc1", "toc2", "toc3", "mt1":
+			p.handleDocumentMetadata(doc, marker)
 		case "c":
-			chapterNum, err := p.parseChapter(marker.Content)
-			if err != nil {
-				return nil, fmt.Errorf("line %d: %w", lineNumber, err)
+			if err := p.handleChapter(doc, marker, &currentChapter, &currentSection, lineNumber); err != nil {
+				return nil, err
 			}
-
-			// Save current section to current chapter before switching chapters
-			if currentSection != nil && currentChapter != nil {
-				currentChapter.Sections = append(currentChapter.Sections, *currentSection)
-			}
-
-			// Save previous chapter if it exists
-			if currentChapter != nil {
-				doc.Chapters = append(doc.Chapters, *currentChapter)
-			}
-
-			// Start new chapter
-			currentChapter = &Chapter{
-				Number:   chapterNum,
-				Sections: make([]Section, 0),
-			}
-			currentSection = nil
-		case "s1", "s2", "s3":
-			level := p.getSectionLevel(marker.Tag)
-			section := Section{
-				Level:  level,
-				Title:  marker.Content,
-				Verses: make([]Verse, 0),
-			}
-
-			// Add previous section to chapter if exists
-			if currentSection != nil && currentChapter != nil {
-				currentChapter.Sections = append(currentChapter.Sections, *currentSection)
-			}
-
-			currentSection = &section
-		case "r":
-			// Reference/cross-reference - attach to current section
-			if p.options.IncludeReferences && currentSection != nil {
-				currentSection.Reference = marker.Content
-			}
+		case "s1", "s2", "s3", "r":
+			p.handleSection(marker, &currentChapter, &currentSection)
 		case "v":
-			verse, err := p.parseVerse(marker.Content, p.options.IncludeFootnotes)
-			if err != nil {
-				return nil, fmt.Errorf("line %d: %w", lineNumber, err)
+			if err := p.handleVerse(marker, &currentSection, lineNumber); err != nil {
+				return nil, err
 			}
-
-			// Ensure we have a section to add the verse to
-			if currentSection == nil {
-				currentSection = &Section{
-					Level:  1,
-					Title:  "",
-					Verses: make([]Verse, 0),
-				}
-			}
-
-			currentSection.Verses = append(currentSection.Verses, *verse)
 		default:
 			// Handle unknown markers in strict mode
 			if p.options.StrictMode {
@@ -194,6 +137,96 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 	}
 
 	return doc, nil
+}
+
+// handleDocumentMetadata processes document-level markers like id, h, toc, mt1
+func (p *Parser) handleDocumentMetadata(doc *Document, marker *Marker) {
+	switch marker.Tag {
+	case "id":
+		doc.ID = marker.Content
+	case "h":
+		doc.Header = marker.Content
+	case "toc1":
+		doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 1, Text: marker.Content})
+	case "toc2":
+		doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 2, Text: marker.Content})
+	case "toc3":
+		doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 3, Text: marker.Content})
+	case "mt1":
+		doc.MainTitle = marker.Content
+	}
+}
+
+// handleChapter processes chapter markers and manages chapter transitions
+func (p *Parser) handleChapter(doc *Document, marker *Marker, currentChapter **Chapter, currentSection **Section, lineNumber int) error {
+	chapterNum, err := p.parseChapter(marker.Content)
+	if err != nil {
+		return fmt.Errorf("line %d: %w", lineNumber, err)
+	}
+
+	// Save current section to current chapter before switching chapters
+	if *currentSection != nil && *currentChapter != nil {
+		(*currentChapter).Sections = append((*currentChapter).Sections, **currentSection)
+	}
+
+	// Save previous chapter if it exists
+	if *currentChapter != nil {
+		doc.Chapters = append(doc.Chapters, **currentChapter)
+	}
+
+	// Start new chapter
+	*currentChapter = &Chapter{
+		Number:   chapterNum,
+		Sections: make([]Section, 0),
+	}
+	*currentSection = nil
+	return nil
+}
+
+// handleSection processes section markers (s1, s2, s3) and references
+func (p *Parser) handleSection(marker *Marker, currentChapter **Chapter, currentSection **Section) {
+	if marker.Tag == "r" {
+		// Reference/cross-reference - attach to current section
+		if p.options.IncludeReferences && *currentSection != nil {
+			(*currentSection).Reference = marker.Content
+		}
+		return
+	}
+
+	// Handle section markers (s1, s2, s3)
+	level := p.getSectionLevel(marker.Tag)
+	section := Section{
+		Level:  level,
+		Title:  marker.Content,
+		Verses: make([]Verse, 0),
+	}
+
+	// Add previous section to chapter if exists
+	if *currentSection != nil && *currentChapter != nil {
+		(*currentChapter).Sections = append((*currentChapter).Sections, **currentSection)
+	}
+
+	*currentSection = &section
+}
+
+// handleVerse processes verse markers and ensures proper section structure
+func (p *Parser) handleVerse(marker *Marker, currentSection **Section, lineNumber int) error {
+	verse, err := p.parseVerse(marker.Content, p.options.IncludeFootnotes)
+	if err != nil {
+		return fmt.Errorf("line %d: %w", lineNumber, err)
+	}
+
+	// Ensure we have a section to add the verse to
+	if *currentSection == nil {
+		*currentSection = &Section{
+			Level:  1,
+			Title:  "",
+			Verses: make([]Verse, 0),
+		}
+	}
+
+	(*currentSection).Verses = append((*currentSection).Verses, *verse)
+	return nil
 }
 
 // parseMarker extracts marker information from a line
