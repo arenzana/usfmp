@@ -156,7 +156,7 @@ jobs:
       run: chmod +x build/usfmp
     
     - name: Run Grype vulnerability scanner
-      uses: anchore/scan-action@v4
+      uses: anchore/scan-action@v6
       id: grype-scan
       with:
         path: "build/usfmp"
@@ -171,7 +171,7 @@ jobs:
         sarif_file: grype-results.sarif
     
     - name: Run Grype for human readable output
-      uses: anchore/scan-action@v4
+      uses: anchore/scan-action@v6
       with:
         path: "build/usfmp"
         format: table
