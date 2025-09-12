@@ -6,7 +6,7 @@ CMD_PATH=./cmd/usfmp
 PKG_PATH=./pkg/...
 INTERNAL_PATH=./internal/...
 BUILD_DIR=build
-VERSION?=0.0.2
+VERSION?=0.0.3
 
 # Go parameters
 GOCMD=go

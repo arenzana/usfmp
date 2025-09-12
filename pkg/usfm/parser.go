@@ -115,6 +115,15 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 			if err := p.handleVerse(marker, &currentSection, lineNumber); err != nil {
 				return nil, err
 			}
+		case "q1", "q2", "q", "p", "m", "pi", "pmo", "pm", "pmc", "pmr", "pi1", "pi2", "pi3":
+			// Poetry and paragraph text continuation markers - append to current verse
+			p.handleTextContinuation(marker, &currentSection)
+		case "d":
+			// Descriptive title - could be part of section or standalone
+			p.handleDescriptiveTitle(marker, &currentChapter, &currentSection)
+		case "b":
+			// Blank line/paragraph break - no text content, just formatting
+			// Skip but don't error in strict mode
 		default:
 			// Handle unknown markers in strict mode
 			if p.options.StrictMode {
@@ -335,4 +344,67 @@ func (p *Parser) removeFootnoteMarkers(text string) string {
 	}
 
 	return strings.TrimSpace(cleaned)
+}
+
+// handleTextContinuation handles poetry and paragraph markers that contain text
+// which should be appended to the current verse
+func (p *Parser) handleTextContinuation(marker *Marker, currentSection **Section) {
+	// Skip empty content
+	if marker.Content == "" {
+		return
+	}
+
+	// Ensure we have a section with verses
+	if *currentSection == nil || len((*currentSection).Verses) == 0 {
+		return
+	}
+
+	// Get the last verse in the current section
+	lastVerseIndex := len((*currentSection).Verses) - 1
+	lastVerse := &((*currentSection).Verses[lastVerseIndex])
+
+	// Append the text to the last verse, with a space separator if needed
+	if lastVerse.Text != "" && !strings.HasSuffix(lastVerse.Text, " ") {
+		lastVerse.Text += " "
+	}
+	lastVerse.Text += marker.Content
+
+	// Handle footnotes in the continuation text if enabled
+	if p.options.IncludeFootnotes {
+		footnotes := p.extractFootnotes(marker.Content)
+		lastVerse.Footnotes = append(lastVerse.Footnotes, footnotes...)
+
+		// Remove footnote markers from the appended text
+		cleanedContent := p.removeFootnoteMarkers(marker.Content)
+
+		// Replace the text with cleaned version
+		if lastVerse.Text != "" && !strings.HasSuffix(strings.TrimSuffix(lastVerse.Text, marker.Content), " ") {
+			lastVerse.Text = strings.TrimSuffix(lastVerse.Text, marker.Content) + " " + cleanedContent
+		} else {
+			lastVerse.Text = strings.TrimSuffix(lastVerse.Text, marker.Content) + cleanedContent
+		}
+	}
+}
+
+// handleDescriptiveTitle handles descriptive title markers (\d) which provide
+// additional information about psalms or sections
+func (p *Parser) handleDescriptiveTitle(marker *Marker, currentChapter **Chapter, currentSection **Section) {
+	// For now, treat descriptive titles as section titles if no section exists
+	// or append to section reference if section exists
+	if *currentSection == nil {
+		// Create a new section with the descriptive title
+		section := Section{
+			Level:  1,
+			Title:  marker.Content,
+			Verses: make([]Verse, 0),
+		}
+		*currentSection = &section
+	} else {
+		// If section already has a reference, append; otherwise set it
+		if (*currentSection).Reference != "" {
+			(*currentSection).Reference += "; " + marker.Content
+		} else {
+			(*currentSection).Reference = marker.Content
+		}
+	}
 }
