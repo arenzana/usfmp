@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4] - 2025-01-12
+
+### Fixed
+- **Multi-book USFM file parsing**: Fixed critical issue where parser would incorrectly use metadata from the last book instead of the first book
+  - Parser now correctly extracts ID, header, title, and TOC entries from the first book only in multi-book files
+  - Example: RVR1909 Bible file now correctly shows "GEN Genesis" instead of "REV" as the ID
+  - Prevents TOC accumulation across multiple books (was showing 132+ entries, now shows only current book's entries)
+  - Maintains full backwards compatibility with single-book USFM files
+
 ### Changed
 - Updated GitHub Actions dependencies:
   - golangci/golangci-lint-action from v6 to v8
