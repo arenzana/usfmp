@@ -346,7 +346,7 @@ func (p *Parser) removeFootnoteMarkers(text string) string {
 	return strings.TrimSpace(cleaned)
 }
 
-// handleTextContinuation handles poetry and paragraph markers that contain text 
+// handleTextContinuation handles poetry and paragraph markers that contain text
 // which should be appended to the current verse
 func (p *Parser) handleTextContinuation(marker *Marker, currentSection **Section) {
 	// Skip empty content
@@ -373,10 +373,10 @@ func (p *Parser) handleTextContinuation(marker *Marker, currentSection **Section
 	if p.options.IncludeFootnotes {
 		footnotes := p.extractFootnotes(marker.Content)
 		lastVerse.Footnotes = append(lastVerse.Footnotes, footnotes...)
-		
+
 		// Remove footnote markers from the appended text
 		cleanedContent := p.removeFootnoteMarkers(marker.Content)
-		
+
 		// Replace the text with cleaned version
 		if lastVerse.Text != "" && !strings.HasSuffix(strings.TrimSuffix(lastVerse.Text, marker.Content), " ") {
 			lastVerse.Text = strings.TrimSuffix(lastVerse.Text, marker.Content) + " " + cleanedContent
@@ -386,7 +386,7 @@ func (p *Parser) handleTextContinuation(marker *Marker, currentSection **Section
 	}
 }
 
-// handleDescriptiveTitle handles descriptive title markers (\d) which provide 
+// handleDescriptiveTitle handles descriptive title markers (\d) which provide
 // additional information about psalms or sections
 func (p *Parser) handleDescriptiveTitle(marker *Marker, currentChapter **Chapter, currentSection **Section) {
 	// For now, treat descriptive titles as section titles if no section exists
