@@ -227,7 +227,7 @@ jobs:
     - name: Run misspell
       run: |
         go install github.com/client9/misspell/cmd/misspell@latest
-        find . -name "bsb_usfm" -prune -o -type f -print | xargs misspell -error
+        find . \( -name "bsb_usfm" -o -name "vendor" \) -prune -o -name "*.go" -type f -print -o -name "*.md" -type f -print -o -name "*.yml" -type f -print -o -name "*.yaml" -type f -print | xargs misspell -error
     
 
   release:
