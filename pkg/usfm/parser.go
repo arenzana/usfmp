@@ -152,18 +152,45 @@ func (p *Parser) Parse(reader io.Reader, sourceFile string) (*Document, error) {
 func (p *Parser) handleDocumentMetadata(doc *Document, marker *Marker) {
 	switch marker.Tag {
 	case "id":
-		doc.ID = marker.Content
+		// Only set the ID if it hasn't been set yet (first book in multi-book files)
+		if doc.ID == "" {
+			doc.ID = marker.Content
+		}
 	case "h":
-		doc.Header = marker.Content
+		// Only set header if it hasn't been set yet (first book in multi-book files)
+		if doc.Header == "" {
+			doc.Header = marker.Content
+		}
 	case "toc1":
-		doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 1, Text: marker.Content})
+		// Only add TOC entries for the first book encountered
+		if doc.ID != "" && len(doc.TableOfContents) == 0 ||
+			(len(doc.TableOfContents) > 0 && !p.hasReachedNewBook(doc)) {
+			doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 1, Text: marker.Content})
+		}
 	case "toc2":
-		doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 2, Text: marker.Content})
+		// Only add TOC entries for the first book encountered
+		if doc.ID != "" && len(doc.TableOfContents) == 0 ||
+			(len(doc.TableOfContents) > 0 && !p.hasReachedNewBook(doc)) {
+			doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 2, Text: marker.Content})
+		}
 	case "toc3":
-		doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 3, Text: marker.Content})
+		// Only add TOC entries for the first book encountered
+		if doc.ID != "" && len(doc.TableOfContents) == 0 ||
+			(len(doc.TableOfContents) > 0 && !p.hasReachedNewBook(doc)) {
+			doc.TableOfContents = append(doc.TableOfContents, TOCEntry{Level: 3, Text: marker.Content})
+		}
 	case "mt1":
-		doc.MainTitle = marker.Content
+		// Only set main title if it hasn't been set yet (first book in multi-book files)
+		if doc.MainTitle == "" {
+			doc.MainTitle = marker.Content
+		}
 	}
+}
+
+// hasReachedNewBook determines if we've encountered a new book by checking if we have chapters
+// This helps us only include TOC entries for the first book in multi-book files
+func (p *Parser) hasReachedNewBook(doc *Document) bool {
+	return len(doc.Chapters) > 0
 }
 
 // handleChapter processes chapter markers and manages chapter transitions
