@@ -112,6 +112,14 @@ This parser supports the major USFM 3.1 markers:
 - `\s1`, `\s2`, `\s3` - Section headings (multiple levels)
 - `\r` - Cross-references
 - `\v` - Verse numbers and text
+- `\d` - Descriptive titles (e.g., Psalm attributions)
+
+### Poetry and Paragraphs  
+- `\q1`, `\q2`, `\q` - Poetry lines (indented levels)
+- `\p`, `\m` - Paragraph markers
+- `\pi`, `\pmo`, `\pm`, `\pmc`, `\pmr` - Special paragraph types
+- `\pi1`, `\pi2`, `\pi3` - Indented paragraphs
+- `\b` - Blank line/paragraph break
 
 ### Footnotes
 - `\f...\\f*` - Footnote blocks

@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Go dependencies:
   - github.com/spf13/pflag from v1.0.6 to v1.0.7
 
+## [0.0.3] - 2025-09-12
+
+### Fixed
+- **CRITICAL**: Fixed incomplete verse parsing for poetry and multi-line verses
+  - Parser now properly handles USFM poetry markers (`\q1`, `\q2`, `\q`) 
+  - Added support for paragraph text continuation markers (`\p`, `\m`, `\pi`, `\pmo`, etc.)
+  - Added handling for descriptive title markers (`\d`)
+  - Blank line markers (`\b`) are now properly ignored without errors
+  - Example: Psalm 23:1 now correctly parses as "The LORD is my shepherd; I shall not want." instead of just "The LORD is my shepherd;"
+  - Affects all poetry books (Psalms, Proverbs, Song of Songs, etc.) and prose with paragraph markers
+
 ### Planned
 - PDF output formatter implementation
 - Enhanced error reporting with line-by-line context
