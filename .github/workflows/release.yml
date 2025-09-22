@@ -185,7 +185,7 @@ jobs:
         chmod +x usfmp
     
     - name: Security scan with Grype
-      uses: anchore/scan-action@v6
+      uses: anchore/scan-action@v7
       with:
         path: "./usfmp"
         format: sarif
