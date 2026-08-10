@@ -30,23 +30,23 @@ func FormatText(documents []*usfm.Document) (string, error) {
 
 		// Document header
 		if doc.MainTitle != "" {
-			result.WriteString(fmt.Sprintf("%s\n", doc.MainTitle))
+			fmt.Fprintf(&result, "%s\n", doc.MainTitle)
 			result.WriteString(strings.Repeat("-", len(doc.MainTitle)) + "\n\n")
 		}
 
 		if doc.ID != "" {
-			result.WriteString(fmt.Sprintf("Book: %s\n", doc.ID))
+			fmt.Fprintf(&result, "Book: %s\n", doc.ID)
 		}
 
 		if doc.Header != "" {
-			result.WriteString(fmt.Sprintf("Header: %s\n", doc.Header))
+			fmt.Fprintf(&result, "Header: %s\n", doc.Header)
 		}
 
 		result.WriteString("\n")
 
 		// Chapters
 		for _, chapter := range doc.Chapters {
-			result.WriteString(fmt.Sprintf("Chapter %d\n", chapter.Number))
+			fmt.Fprintf(&result, "Chapter %d\n", chapter.Number)
 			result.WriteString(strings.Repeat("-", 20) + "\n\n")
 
 			// Sections
@@ -54,17 +54,17 @@ func FormatText(documents []*usfm.Document) (string, error) {
 				if section.Title != "" {
 					// Add indent based on section level
 					indent := strings.Repeat("  ", section.Level-1)
-					result.WriteString(fmt.Sprintf("%s%s\n", indent, section.Title))
+					fmt.Fprintf(&result, "%s%s\n", indent, section.Title)
 
 					if section.Reference != "" {
-						result.WriteString(fmt.Sprintf("%s(%s)\n", indent, section.Reference))
+						fmt.Fprintf(&result, "%s(%s)\n", indent, section.Reference)
 					}
 					result.WriteString("\n")
 				}
 
 				// Verses
 				for _, verse := range section.Verses {
-					result.WriteString(fmt.Sprintf("%d. %s", verse.Number, verse.Text))
+					fmt.Fprintf(&result, "%d. %s", verse.Number, verse.Text)
 
 					// Add footnotes
 					if len(verse.Footnotes) > 0 {
@@ -73,8 +73,8 @@ func FormatText(documents []*usfm.Document) (string, error) {
 							if j > 0 {
 								result.WriteString("; ")
 							}
-							result.WriteString(fmt.Sprintf("%s:%s - %s",
-								footnote.Caller, footnote.Reference, footnote.Text))
+							fmt.Fprintf(&result, "%s:%s - %s",
+								footnote.Caller, footnote.Reference, footnote.Text)
 						}
 						result.WriteString("]")
 					}

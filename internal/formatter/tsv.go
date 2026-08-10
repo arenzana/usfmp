@@ -49,7 +49,7 @@ func FormatTSV(documents []*usfm.Document) (string, error) {
 					footnotesField := cleanTSVField(strings.Join(footnotes, "; "))
 
 					// Write TSV row
-					result.WriteString(fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
+					fmt.Fprintf(&result, "%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
 						bookID,
 						chapter.Number,
 						verse.Number,
@@ -58,7 +58,7 @@ func FormatTSV(documents []*usfm.Document) (string, error) {
 						verseText,
 						footnotesField,
 						references,
-					))
+					)
 				}
 			}
 		}
