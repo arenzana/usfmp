@@ -71,7 +71,12 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v8
       with:
-        version: latest
+        # Pinned deliberately. With `latest`, the linter floats while the source
+        # stands still, so a green master turns red on a commit that touches no Go
+        # code: staticcheck enabled QF1012 in v2.12.2 and the next unrelated PR ate
+        # the failure. Bump this on purpose, so the rule churn lands in a commit
+        # that is about the rule churn.
+        version: v2.12.2
         args: --timeout=5m
 
   build:
